@@ -1,6 +1,4 @@
 from src.query_parser import get_user_id_and_user_name_from_query
-from src.jira_client import get_jira_issues
-from src.github_client import get_github_activity
 from src.response_generator import format_response_template
 from unittest.mock import patch
 
