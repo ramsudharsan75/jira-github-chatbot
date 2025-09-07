@@ -1,6 +1,6 @@
 import json
-
 import openai
+
 from config import logger
 
 

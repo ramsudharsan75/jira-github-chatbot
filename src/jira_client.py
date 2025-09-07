@@ -1,5 +1,6 @@
 import requests
 from requests.auth import HTTPBasicAuth
+
 from config import settings, logger
 
 JIRA_AUTH = HTTPBasicAuth(settings.JIRA_API_USER, settings.JIRA_API_TOKEN)

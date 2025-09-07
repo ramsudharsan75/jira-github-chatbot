@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import requests
 from config import settings, logger
-from response_generator import parse_pr_response, parse_commit_response
+from src.response_generator import parse_pr_response, parse_commit_response
 
 
 def get_github_activity(github_username) -> tuple[list[str], list[str]]:

@@ -1,9 +1,9 @@
 from config import settings
 from config.logging import logger
-from query_parser import get_user_id_and_user_name_from_query
-from jira_client import get_jira_issues
-from github_client import get_github_activity
-from response_generator import format_response_ai, format_response_template
+from src.query_parser import get_user_id_and_user_name_from_query
+from src.jira_client import get_jira_issues
+from src.github_client import get_github_activity
+from src.response_generator import format_response_ai, format_response_template
 
 
 def main():
@@ -15,7 +15,7 @@ def main():
             break
 
         # 1. Parse the user's question to find a user_id
-        user_id, user_name = get_user_id_and_user_name_from_query(query)
+        user_id, user_name = get_user_id_and_user_name_from_query(query, settings.USERNAMES_USER_ID)
 
         if not user_id or not user_name:
             logger.warning("I'm sorry, I couldn't extract the team member details. Please try again.")
