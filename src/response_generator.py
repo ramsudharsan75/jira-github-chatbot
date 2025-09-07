@@ -4,28 +4,6 @@ import openai
 from config import logger
 
 
-def format_response_template(name, jira_issues, github_prs, github_commits):
-    """Generates a human-readable response using simple templates."""
-    if not jira_issues and not github_prs and not github_commits:
-        return f"I couldn't find any recent activity for {name.title()}."
-
-    response_parts = [f"Here's what {name.title()} seems to be working on:"]
-
-    if jira_issues:
-        response_parts.append("\n**Current JIRA Tickets:**")
-        response_parts.extend(jira_issues)
-
-    if github_prs:
-        response_parts.append("\n**Recent GitHub Pull Requests:**")
-        response_parts.extend(github_prs)
-
-    if github_commits:
-        response_parts.append("\n**Recent GitHub Commits:**")
-        response_parts.extend(github_commits)
-
-    return "\n".join(response_parts)
-
-
 def format_response_ai(user_name, jira_issues, github_prs, github_commits):
     """Generates a summary using the OpenAI API."""
     if not jira_issues and not github_prs and not github_commits:
@@ -65,3 +43,38 @@ def format_response_ai(user_name, jira_issues, github_prs, github_commits):
         logger.info("Falling back to templated response")
 
     return format_response_template(user_name, jira_issues, github_prs, github_commits)
+
+
+def format_response_template(name, jira_issues, github_prs, github_commits):
+    """Generates a human-readable response using simple templates."""
+    if not jira_issues and not github_prs and not github_commits:
+        return f"I couldn't find any recent activity for {name.title()}."
+
+    response_parts = [f"Here's what {name.title()} seems to be working on:"]
+
+    if jira_issues:
+        response_parts.append("\n**Current JIRA Tickets:**")
+        response_parts.extend(jira_issues)
+
+    if github_prs:
+        response_parts.append("\n**Recent GitHub Pull Requests:**")
+        response_parts.extend(github_prs)
+
+    if github_commits:
+        response_parts.append("\n**Recent GitHub Commits:**")
+        response_parts.extend(github_commits)
+
+    return "\n".join(response_parts)
+
+
+def parse_pr_response(pr_items: list[dict]) -> list[str]:
+    """Parses the PR items from GitHub API response."""
+    return [f"- PR #{pr['number']}: {pr['title']} in {pr['repository_url'].split('/')[-1]}" for pr in pr_items[:5]]
+
+
+def parse_commit_response(commit_items: list[dict]) -> list[str]:
+    """Parses the commit items from GitHub API response."""
+    return [
+        f"- Commit in {commit['repository']['name']}: {commit['commit']['message'].splitlines()[0]}"
+        for commit in commit_items[:5]
+    ]

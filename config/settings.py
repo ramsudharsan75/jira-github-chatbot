@@ -1,26 +1,28 @@
 from pydantic_settings import BaseSettings
 
+from . import user_data
+
 
 class Settings(BaseSettings):
     JIRA_API_TOKEN: str
     JIRA_BASE_URL: str
     JIRA_API_USER: str
+    GITHUB_SEARCH_BASE_URL: str
     GITHUB_API_TOKEN: str
     GITHUB_OWNER: str
     OPENAI_API_KEY: str = ""
-    USERNAMES_USER_ID: dict[tuple, int] = {
-        ("ramsudharsan75", "ram", "ramsudharsan"): 1
-    }
-    USER_ID_ACCOUNT_IDS: dict[int, dict[str, str]] = {
-        1: {
-            "jira_account_id": "5a02e9030793706225b9aecb",
-            "github_username": "ramsudharsan75",
-        },
-    }
+    GITHUB_RECENT_ACTIVITY_DAYS: int = 7
+    GITHUB_HEADERS: dict[str, str] = {}
+    GITHUB_SEARCH_COMMIT_ACCEPT_HEADER: dict[str, str]
+
+    USERNAMES_USER_ID: dict[tuple, int] = user_data.USERNAMES_USER_ID
+    USER_ID_ACCOUNT_IDS: dict[int, dict[str, str]] = user_data.USER_ID_ACCOUNT_IDS
+
     USE_AI: bool = False
 
     def model_post_init(self, _):
         self.USE_AI = bool(self.OPENAI_API_KEY)
+        self.GITHUB_HEADERS = {"Authorization": f"token {self.GITHUB_API_TOKEN}"}
 
     class Config:
         env_file = ".env"
