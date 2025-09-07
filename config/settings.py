@@ -1,9 +1,11 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from . import user_data
+from config import user_data
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+
     JIRA_API_TOKEN: str
     JIRA_BASE_URL: str
     JIRA_API_USER: str
@@ -23,9 +25,6 @@ class Settings(BaseSettings):
     def model_post_init(self, _):
         self.USE_AI = bool(self.OPENAI_API_KEY)
         self.GITHUB_HEADERS = {"Authorization": f"token {self.GITHUB_API_TOKEN}"}
-
-    class Config:
-        env_file = ".env"
 
 
 settings = Settings()  # type: ignore
