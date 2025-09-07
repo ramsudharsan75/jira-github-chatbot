@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     }
     USE_AI: bool = False
 
-    def __post_init__(self):
+    def model_post_init(self, _):
         self.USE_AI = bool(self.OPENAI_API_KEY)
 
     class Config:

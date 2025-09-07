@@ -1,7 +1,7 @@
 import json
 
 import openai
-from config import settings, logger
+from config import logger
 
 
 def format_response_template(name, jira_issues, github_prs, github_commits):
@@ -26,17 +26,14 @@ def format_response_template(name, jira_issues, github_prs, github_commits):
     return "\n".join(response_parts)
 
 
-def format_response_ai(name, jira_issues, github_prs, github_commits):
+def format_response_ai(user_name, jira_issues, github_prs, github_commits):
     """Generates a summary using the OpenAI API."""
-    if not settings.OPENAI_API_KEY:
-        return "OpenAI API key not configured. Falling back to template."
-
     if not jira_issues and not github_prs and not github_commits:
-        return f"I couldn't find any recent activity for {name.title()}."
+        return f"I couldn't find any recent activity for {user_name.title()}."
 
     # Create a structured prompt for the AI
     prompt = f"""
-    Summarize the recent work of a team member named {name.title()} in a brief, conversational paragraph. 
+    Summarize the recent work of a team member named {user_name.title()} in a brief, conversational paragraph. 
     Use the following raw data from JIRA and GitHub. If a category is empty, don't mention it.
 
     JIRA Tickets:
@@ -65,6 +62,6 @@ def format_response_ai(name, jira_issues, github_prs, github_commits):
         return response_content.strip() if response_content else ""
     except Exception as e:
         logger.error(f"Error calling OpenAI API: {e}")
-        return (
-            "There was an issue generating an AI summary. Here is the raw data instead."
-        )
+        logger.info("Falling back to templated response")
+
+    return format_response_template(user_name, jira_issues, github_prs, github_commits)
