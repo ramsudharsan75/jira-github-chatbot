@@ -2,44 +2,48 @@ from datetime import datetime, timedelta
 
 import requests
 from config import settings, logger
+from response_generator import parse_pr_response, parse_commit_response
 
-GITHUB_HEADERS = {"Authorization": f"token {settings.GITHUB_API_TOKEN}"}
 
-
-def get_github_activity(github_username):
+def get_github_activity(github_username) -> tuple[list[str], list[str]]:
     """Fetches recent commits and pull requests for a GitHub user."""
-    if not github_username:
-        return None, None
+    activity_start_datetime = (datetime.now() - timedelta(days=settings.GITHUB_RECENT_ACTIVITY_DAYS)).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
+    prs = _get_github_prs(activity_start_datetime, github_username)
+    commits = _get_github_commits(activity_start_datetime, github_username)
+    return prs, commits
 
-    # Calculate date for "this week"
-    one_week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    # Get recent pull requests
-    prs = []
-    
+def _get_github_prs(activity_start_datetime: str, github_username: str) -> list[str]:
+    """Fetches recent pull requests for a GitHub user."""
+    pr_search_query = f"q=is:pr+author:{github_username}+created:>{activity_start_datetime}"
+    url_prs = f"{settings.GITHUB_SEARCH_BASE_URL}/issues?{pr_search_query}"
+
     try:
-        url_prs = f"https://api.github.com/search/issues?q=is:pr+author:{github_username}+created:>{one_week_ago}"
-        response_prs = requests.get(url_prs, headers=GITHUB_HEADERS)
+        response_prs = requests.get(url_prs, headers=settings.GITHUB_HEADERS)
         response_prs.raise_for_status()
         pr_items = response_prs.json().get("items", [])
-        prs = [f"- PR #{pr['number']}: {pr['title']} in {pr['repository_url'].split('/')[-1]}" for pr in pr_items[:5]]
+        return parse_pr_response(pr_items)
     except requests.exceptions.RequestException as e:
         logger.error(f"Error fetching GitHub PRs: {e}")
 
-    # Get recent commits
-    commits = []
+    return []
+
+
+def _get_github_commits(activity_start_datetime: str, github_username: str) -> list[str]:
+    """Fetches recent commits for a GitHub user."""
+    commit_search_query = f"q=committer:{github_username}+committer-date:>{activity_start_datetime}"
+    url_commits = f"{settings.GITHUB_SEARCH_BASE_URL}/commits?{commit_search_query}"
+    headers_commits = settings.GITHUB_HEADERS.copy()
+    headers_commits.update(settings.GITHUB_SEARCH_COMMIT_ACCEPT_HEADER)
+
     try:
-        url_commits = f"https://api.github.com/search/commits?q=author:{github_username}+committer-date:>{one_week_ago}"
-        headers_commits = GITHUB_HEADERS.copy()
-        headers_commits["Accept"] = "application/vnd.github.cloak-preview"  # Required for this search endpoint
         response_commits = requests.get(url_commits, headers=headers_commits)
         response_commits.raise_for_status()
         commit_items = response_commits.json().get("items", [])
-        commits = [
-            f"- Commit in {commit['repository']['name']}: {commit['commit']['message'].splitlines()[0]}"
-            for commit in commit_items[:5]
-        ]
+        return parse_commit_response(commit_items)
     except requests.exceptions.RequestException as e:
         logger.error(f"Error fetching GitHub commits: {e}")
 
-    return prs, commits
+    return []

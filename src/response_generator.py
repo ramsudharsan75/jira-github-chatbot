@@ -1,42 +1,17 @@
 import json
 
 import openai
-from config import settings, logger
+from config import logger
 
 
-def format_response_template(name, jira_issues, github_prs, github_commits):
-    """Generates a human-readable response using simple templates."""
-    if not jira_issues and not github_prs and not github_commits:
-        return f"I couldn't find any recent activity for {name.title()}."
-
-    response_parts = [f"Here's what {name.title()} seems to be working on:"]
-
-    if jira_issues:
-        response_parts.append("\n**Current JIRA Tickets:**")
-        response_parts.extend(jira_issues)
-
-    if github_prs:
-        response_parts.append("\n**Recent GitHub Pull Requests:**")
-        response_parts.extend(github_prs)
-
-    if github_commits:
-        response_parts.append("\n**Recent GitHub Commits:**")
-        response_parts.extend(github_commits)
-
-    return "\n".join(response_parts)
-
-
-def format_response_ai(name, jira_issues, github_prs, github_commits):
+def format_response_ai(user_name, jira_issues, github_prs, github_commits):
     """Generates a summary using the OpenAI API."""
-    if not settings.OPENAI_API_KEY:
-        return "OpenAI API key not configured. Falling back to template."
-
     if not jira_issues and not github_prs and not github_commits:
-        return f"I couldn't find any recent activity for {name.title()}."
+        return f"I couldn't find any recent activity for {user_name.title()}."
 
     # Create a structured prompt for the AI
     prompt = f"""
-    Summarize the recent work of a team member named {name.title()} in a brief, conversational paragraph. 
+    Summarize the recent work of a team member named {user_name.title()} in a brief, conversational paragraph. 
     Use the following raw data from JIRA and GitHub. If a category is empty, don't mention it.
 
     JIRA Tickets:
@@ -65,6 +40,41 @@ def format_response_ai(name, jira_issues, github_prs, github_commits):
         return response_content.strip() if response_content else ""
     except Exception as e:
         logger.error(f"Error calling OpenAI API: {e}")
-        return (
-            "There was an issue generating an AI summary. Here is the raw data instead."
-        )
+        logger.info("Falling back to templated response")
+
+    return format_response_template(user_name, jira_issues, github_prs, github_commits)
+
+
+def format_response_template(name, jira_issues, github_prs, github_commits):
+    """Generates a human-readable response using simple templates."""
+    if not jira_issues and not github_prs and not github_commits:
+        return f"I couldn't find any recent activity for {name.title()}."
+
+    response_parts = [f"Here's what {name.title()} seems to be working on:"]
+
+    if jira_issues:
+        response_parts.append("\n**Current JIRA Tickets:**")
+        response_parts.extend(jira_issues)
+
+    if github_prs:
+        response_parts.append("\n**Recent GitHub Pull Requests:**")
+        response_parts.extend(github_prs)
+
+    if github_commits:
+        response_parts.append("\n**Recent GitHub Commits:**")
+        response_parts.extend(github_commits)
+
+    return "\n".join(response_parts)
+
+
+def parse_pr_response(pr_items: list[dict]) -> list[str]:
+    """Parses the PR items from GitHub API response."""
+    return [f"- PR #{pr['number']}: {pr['title']} in {pr['repository_url'].split('/')[-1]}" for pr in pr_items[:5]]
+
+
+def parse_commit_response(commit_items: list[dict]) -> list[str]:
+    """Parses the commit items from GitHub API response."""
+    return [
+        f"- Commit in {commit['repository']['name']}: {commit['commit']['message'].splitlines()[0]}"
+        for commit in commit_items[:5]
+    ]
